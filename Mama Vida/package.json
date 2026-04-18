@@ -1,0 +1,14 @@
+{
+  "name": "sassy-sudoku",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "A sudoku PWA.",
+  "author": "vm",
+  "scripts": {
+    "test":  "node --test test/*.test.js",
+    "bench": "node scripts/bench.js",
+    "daily": "node scripts/generate-dailies.js",
+    "notes": "node scripts/rotate-notes.js"
+  }
+}

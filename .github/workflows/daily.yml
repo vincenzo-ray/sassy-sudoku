@@ -1,0 +1,45 @@
+name: daily puzzle
+
+on:
+  schedule:
+    # 00:15 UTC every day — runs slightly after midnight so tomorrow's puzzle
+    # is ready before anyone loads the app.
+    - cron: '15 0 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Generate next 14 days of curated dailies
+        working-directory: Mama Vida
+        run: node scripts/generate-dailies.js
+
+      - name: Commit if changed
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if [[ -n "$(git status --porcelain 'Mama Vida/dailies.json')" ]]; then
+            git add "Mama Vida/dailies.json"
+            git commit -m "chore(daily): refresh puzzles"
+            git push
+            echo "CHANGED=true" >> "$GITHUB_ENV"
+          else
+            echo "Dailies unchanged."
+          fi
+
+      - name: Trigger Pages redeploy (so live site sees new JSON)
+        if: env.CHANGED == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run pages.yml --ref main

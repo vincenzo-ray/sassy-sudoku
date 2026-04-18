@@ -1,0 +1,39 @@
+name: benchmarks
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'Mama Vida/engine.js'
+      - 'Mama Vida/scripts/bench.js'
+      - '.github/workflows/benchmarks.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  bench:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Benchmark generator
+        working-directory: Mama Vida
+        run: node scripts/bench.js
+
+      - name: Commit BENCHMARKS.md if changed
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if [[ -n "$(git status --porcelain BENCHMARKS.md)" ]]; then
+            git add BENCHMARKS.md
+            git commit -m "chore(bench): refresh generator benchmarks"
+            git push
+          else
+            echo "No benchmark changes."
+          fi

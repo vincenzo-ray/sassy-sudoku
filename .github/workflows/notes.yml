@@ -1,0 +1,44 @@
+name: weekly notes
+
+on:
+  schedule:
+    # 00:30 UTC every Monday — rotate the sweet-notes pool for the new ISO week.
+    - cron: '30 0 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  rotate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Rotate weekly notes
+        working-directory: Mama Vida
+        run: node scripts/rotate-notes.js
+
+      - name: Commit if changed
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if [[ -n "$(git status --porcelain 'Mama Vida/notes.json')" ]]; then
+            git add "Mama Vida/notes.json"
+            git commit -m "chore(notes): weekly rotation"
+            git push
+            echo "CHANGED=true" >> "$GITHUB_ENV"
+          else
+            echo "Notes unchanged."
+          fi
+
+      - name: Trigger Pages redeploy (so live site sees new notes)
+        if: env.CHANGED == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run pages.yml --ref main
